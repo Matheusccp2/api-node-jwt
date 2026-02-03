@@ -12,11 +12,31 @@ function checkToken(req, res, next) {
 
   try {
     const secret = process.env.SECRET;
-    jwt.verify(token, secret);
+    const decoded = jwt.verify(token, secret);
+    
+    // Adiciona as informações do usuário na requisição
+    req.userId = decoded.userId;
+    req.user = decoded;
+    
     next();
   } catch (error) {
-    res.status(400).json({
-      message: "Token inválido!",
+    // Trata especificamente token expirado
+    if (error.name === "TokenExpiredError") {
+      return res.status(401).json({
+        message: "Token expirado!",
+      });
+    }
+    
+    // Trata token inválido
+    if (error.name === "JsonWebTokenError") {
+      return res.status(401).json({
+        message: "Token inválido!",
+      });
+    }
+    
+    // Outros erros
+    return res.status(400).json({
+      message: "Erro na autenticação",
     });
   }
 }
